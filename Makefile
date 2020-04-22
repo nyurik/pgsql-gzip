@@ -46,14 +46,27 @@ deb: clean
 	pg_buildext updatecontrol
 	dpkg-buildpackage -B
 
-# Name of the base Docker image to use. Uses debian:sid by default
-base ?= debian:sid
+# Name of the PostgreSQL to build for
+PG_MAJOR ?= 12
 
 .PHONY: deb-docker
 deb-docker:
-	@echo "*** Using base=$(base)"
-	docker build "--build-arg=BASE_IMAGE=$(base)" -t pgsql-gzip-$(base) .
+	@echo "*** Using PG_MAJOR=$(PG_MAJOR)"
+	docker build "--build-arg=PG_MAJOR=$(PG_MAJOR)" -t pgsql-gzip-$(PG_MAJOR) .
 	# Create a temp dir that we will remove later. Otherwise docker will create a root-owned dir.
 	mkdir -p "$$(pwd)/target/pgsql-gzip"
-	docker run --rm -ti -u $$(id -u $${USER}):$$(id -g $${USER}) -v "$$(pwd)/target:/build" -v "$$(pwd):/build/pgsql-gzip" pgsql-gzip-$(base) make deb
+	docker run --rm -ti -u $$(id -u $${USER}):$$(id -g $${USER}) -v "$$(pwd)/target:/build" -v "$$(pwd):/build/pgsql-gzip" pgsql-gzip-$(PG_MAJOR) make deb
 	rmdir "$$(pwd)/target/pgsql-gzip" || true
+
+# A few helpers. These could probably be simplified with the makefile magic, but probably not worth it
+.PHONY: deb-10
+deb-10: PG_MAJOR=10
+deb-10: deb-docker
+
+.PHONY: deb-11
+deb-11: PG_MAJOR=11
+deb-11: deb-docker
+
+.PHONY: deb-12
+deb-12: PG_MAJOR=12
+deb-12: deb-docker
